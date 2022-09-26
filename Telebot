@@ -1,0 +1,80 @@
+import telebot
+import requests 
+import threading
+from bs4 import BeautifulSoup 
+from telebot import types
+
+token='наш токен'
+bot=telebot.TeleBot(token)
+stack = {0:-3,1:-1, 2:-2}
+c = 0
+
+
+def parse(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'lxml')
+    proxi = soup.find_all('a', class_='product__item-title_link')
+    value = soup.find_all('div', class_='product__item-prop prop--pcs')
+
+    for i in zip(proxi,value):
+        j = i[1]
+        j = j.text
+        j = j.split()
+        j = sorted(j, key = lambda ele: (0, int(ele))
+                if ele.isdigit() else (1, ele))
+        m = i[0]
+        m = m.text
+        m = m.split()
+        m = sorted(m, key = lambda ele: (0, int(ele))
+                if ele.isdigit() else (1, ele))
+        j = int(j[0])
+        if j > stack[c]:
+            stack[c]=j
+            print("Купили прокси\n" "Порт "+m[1]+"*\n" "Осталось свободно "+print(stack[c])+" шт.\n")
+        c=c+1
+
+
+    for i in proxi:
+        i = i.text
+        i = i.split()
+        i = sorted(i, key = lambda ele: (0, int(ele))
+                            if ele.isdigit() else (1, ele))
+        
+
+    for i in value:
+        i = i.text
+        i = i.split()
+        i = sorted(i, key = lambda ele: (0, int(ele))
+                            if ele.isdigit() else (1, ele))
+        
+
+
+parse_check = threading.Timer(1800.0,parse)
+
+
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.send_message(message.chat.id,'Здравсвтуйте!')
+
+
+@bot.message_handler(commands=['button'])
+def button_message(message):
+    markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1=types.KeyboardButton("Начать отслеживать")
+    markup.add(item1)
+    bot.send_message(message.chat.id,'В случае изменения статуса прокси-порта вам придёт оповещение!',reply_markup=markup)
+
+
+@bot.message_handler(content_types='text')
+def message_reply(message):
+    if message.text=="Начать отслеживать":
+        parse_check.start()
+        markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item1=types.KeyboardButton("Прекратить отслеживать")
+        markup.add(item1)
+        bot.send_message(message.chat.id,'Выберите что вам надо',reply_markup=markup)
+    elif message.text=="Прекратить отслеживать":
+        bot.send_message(message.chat.id,'Спасибо, что пользваолись нашим сервисом!')
+
+
+bot.infinity_polling()
